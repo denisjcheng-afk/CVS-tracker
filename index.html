@@ -1,0 +1,89 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+export default function CVSCloudTracker() {
+  const [reports, setReports] = useState([]);
+  const [name, setName] = useState("");
+  const [time, setTime] = useState("09:00");
+
+  // Simulated cloud (localStorage for now, easy to swap to Firebase later)
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("cloud_reports") || "[]");
+    setReports(saved);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("cloud_reports", JSON.stringify(reports));
+  }, [reports]);
+
+  const today = new Date().toDateString();
+
+  function addReport() {
+    if (!name) return;
+    setReports([
+      ...reports,
+      { id: Date.now(), name, time, done: null },
+    ]);
+    setName("");
+  }
+
+  function toggle(id) {
+    setReports(
+      reports.map((r) =>
+        r.id === id
+          ? { ...r, done: r.done === today ? null : today }
+          : r
+      )
+    );
+  }
+
+  const overdue = reports.filter(
+    (r) => r.done !== today && new Date().getHours() > parseInt(r.time)
+  ).length;
+
+  const done = reports.filter((r) => r.done === today).length;
+
+  return (
+    <div className="p-6 grid gap-6">
+      <h1 className="text-2xl font-bold">Cloud Report Tracker</h1>
+
+      <div className="grid grid-cols-3 gap-4">
+        <Card><CardContent>Overdue: {overdue}</CardContent></Card>
+        <Card><CardContent>Done Today: {done}</CardContent></Card>
+        <Card><CardContent>Total: {reports.length}</CardContent></Card>
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          className="border p-2 rounded"
+          placeholder="Report name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          type="time"
+          className="border p-2 rounded"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+        />
+        <Button onClick={addReport}>Add</Button>
+      </div>
+
+      <div className="grid gap-2">
+        {reports.map((r) => (
+          <Card key={r.id}>
+            <CardContent className="flex justify-between items-center">
+              <span>
+                {r.name} - {r.time}
+              </span>
+              <Button onClick={() => toggle(r.id)}>
+                {r.done === today ? "✓" : "Mark"}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
